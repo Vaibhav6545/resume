@@ -1,47 +1,52 @@
-🔄 Key Architectural Changes
 
-ReAct Approach -->  Tool Calling Approach
-
-ReAct prompt template  -->  .bind_tools() method
-
-ReActSingleInputOutputParser -->  Direct tool call handling
-
-Text format parsing -->  Structured JSON responses
+from typing import List, Dict, Anys
+def implement_set_api_key(api_key: str):
+    """
+    Set the OPENAI_API_KEY environment variable.
+    """
+    os.environ["OPENAI_API_KEY"] = api_key
 
 
-
-📋 Step-by-Step Implementation Guide
-
-
-
-Step 1: Set Up the Model
-
-# Old way: Complex prompt template
-template = """Question: {input}... {tools}
-Thought: {agent_scratchpad}..."""
-# New way: Simple tool binding with real LangChain API
-from langchain_openai import ChatOpenAI
-model = ChatOpenAI(temperature=0)
-model_with_tools = model.bind_tools(tools)
+def implement_create_model_with_tools(tools: List[Tool]) -> ChatOpenAI:
+    """
+    Create a ChatOpenAI model and bind the provided tools to it.
+    """
+    model = ChatOpenAI(temperature=0)
+    return model.bind_tools(tools)
 
 
-Step 2: Handle Model Responses
-
-# Old way: Parse text output
-agent_step = ReActSingleInputOutputParser().parse(response)
- 
-# New way: Check for tool calls (authentic OpenAI behavior)
-if response.tool_calls:
-    # Note: response.content is empty when tool calls are made
-    # Execute tools directly from tool_calls
+def implement_check_for_tool_calls(response: AIMessage) -> bool:
+    """
+    Check if the model response contains any tool calls.
+    """
+    return bool(response.tool_calls)
 
 
-Step 3: Execute Tools
+def implement_execute_tool_call(tool_call: Dict, available_tools: List[Tool]) -> str:
+    """
+    Execute a single tool call and return the result.
+    """
+    tool_name = tool_call.get("name")
+    tool_args = tool_call.get("args", {})
 
-# Old way: Manual tool finding and execution
-tool_to_use = find_tool_by_name(tools, tool_name)
-observation = tool_to_use.func(tool_input)
- 
-# New way: Direct tool execution from tool_calls
-for tool_call in response.tool_calls:
-    result = execute_tool_call(tool_call, tools)
+    for tool in available_tools:
+        if tool.name == tool_name:
+            return str(tool.invoke(tool_args.get("text", "")))
+    
+    return "❌ Tool not found."
+
+
+def implement_run_agent_with_tool_calling(model_with_tools: ChatOpenAI, 
+                                          user_input: str, 
+                                          available_tools: List[Tool]) -> str:
+    """
+    Run the modern tool calling agent.
+    """
+    response = model_with_tools.invoke(user_input)
+
+    if implement_check_for_tool_calls(response):
+        tool_call = response.tool_calls[0]  # Assuming one tool call for simplicity
+        return implement_execute_tool_call(tool_call, available_tools)
+    else:
+        return response.content
+
