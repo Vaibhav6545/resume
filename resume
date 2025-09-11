@@ -1,101 +1,47 @@
-From ReAct Prompting to Modern Tool Calling
-🔧 Tool Calling Exercise: From ReAct Prompting to Modern Tool Calling
+🔄 Key Architectural Changes
+
+ReAct Approach -->  Tool Calling Approach
+
+ReAct prompt template  -->  .bind_tools() method
+
+ReActSingleInputOutputParser -->  Direct tool call handling
+
+Text format parsing -->  Structured JSON responses
 
 
 
-Welcome to the LangChain Tool Calling Exercise!  This exercise demonstrates the evolution from traditional ReAct prompting to modern LLM tool calling capabilities.
-
-This excerise is based on: https://python.langchain.com/docs/concepts/tool_calling/
-
-📚 What You'll Learn
-
-In this exercise, you'll modernize an AI agent by transitioning from:
-
-Old Approach: ReAct prompting with manual text parsing
-
-New Approach: Native LLM tool calling with vendor optimization
+📋 Step-by-Step Implementation Guide
 
 
 
-🎯 Exercise Overview
+Step 1: Set Up the Model
 
-The Problem with ReAct Prompting
-
-The original code uses a ReAct prompt template that:
-
-Relies on specific text formatting:
-(Question/Thought/Action/Action Input/Observation)
-
-Requires complex output parsing with ReActSingleInputOutputParser
-
-Depends on prompt engineering for tool selection
-
-Is brittle and can fail with minor format changes
+# Old way: Complex prompt template
+template = """Question: {input}... {tools}
+Thought: {agent_scratchpad}..."""
+# New way: Simple tool binding with real LangChain API
+from langchain_openai import ChatOpenAI
+model = ChatOpenAI(temperature=0)
+model_with_tools = model.bind_tools(tools)
 
 
+Step 2: Handle Model Responses
 
-The Modern Solution: Tool Calling
-
-Modern LLMs support native tool calling that:
-
-✅ Shifts responsibility to LLM vendors (they optimize tool selection)
-
-✅ Eliminates prompt fragility (no specific format required)
-
-✅ Provides structured responses (JSON tool calls instead of text parsing)
-
-✅ Improves reliability (vendor-optimized decision making)
+# Old way: Parse text output
+agent_step = ReActSingleInputOutputParser().parse(response)
+ 
+# New way: Check for tool calls (authentic OpenAI behavior)
+if response.tool_calls:
+    # Note: response.content is empty when tool calls are made
+    # Execute tools directly from tool_calls
 
 
+Step 3: Execute Tools
 
-🛠 Your Mission
-
-Replace the ReAct prompt-based approach with modern tool calling by implementing these functions:
-
-
-
-Functions to Implement:
-
-implement_set_api_key(api_key: str)
-
-implement_create_model_with_tools(tools: List[Tool]) -> ChatOpenAI
-
-implement_check_for_tool_calls(response: AIMessage) -> bool
-
-implement_execute_tool_call(tool_call: Dict, available_tools: List[Tool]) -> str
-
-implement_run_agent_with_tool_calling(...) -> str
-
-
-
-🎉 Expected Output
-
-When working correctly, your agent should:
-
-- Set up the API key ✅
-
-- Create a model with tool calling capabilities ✅
-
-- Process the question: *"What is the length of the word: DOG"* ✅
-
-- Make a tool call to `get_text_length` with `text="DOG"` ✅
-
-- Return the result: `3` ✅
-
-
-
-💡 Key Learning Points
-
-Vendor Optimization: LLM providers optimize tool calling better than manual prompts
-
-Structured Responses: Tool calls return JSON instead of requiring text parsing 
-
-Authentic Behavior: When making tool calls, `response.content` is empty (matches real OpenAI API)
-
-Reliability: Less dependent on prompt engineering and text formatting
-
-Simplicity: Cleaner code with fewer moving parts
-
-Future-Proof: Aligns with how modern AI systems work
-
-Hope you will enjoy!  🤖 would love to get your feedback on this :)
+# Old way: Manual tool finding and execution
+tool_to_use = find_tool_by_name(tools, tool_name)
+observation = tool_to_use.func(tool_input)
+ 
+# New way: Direct tool execution from tool_calls
+for tool_call in response.tool_calls:
+    result = execute_tool_call(tool_call, tools)
